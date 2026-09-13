@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل حضور الفعالية الافتراضية</title>
+
+<!-- Arabic font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Cloudflare Turnstile (swap src for reCAPTCHA v2 if preferred, see setup guide) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+<!-- Local config: WEB_APP_URL + SITE_KEY. Never commit the real config.js -->
+<script src="config.js"></script>
+
+<style>
+/* ===================== DESIGN TOKENS — edit here only ===================== */
+:root{
+  --bg-fill-color:#fefefe;         /* fallback/side color outside the logo image */
+  --card-bg-rgb:243, 118, 109;          /* card background base color (rgb) */
+  --card-opacity:0.65;             /* card opacity — keep between 0.5 and 0.75 */
+  --blur-strength:4px;            /* backdrop blur strength */
+  --accent:#f3766d;                /* primary accent color */
+  --accent-2:#ffb199;              /* secondary accent for gradients */
+  --text-main:#f8fafc;
+  --text-muted:#f8fafc;
+  --error:#ff6b6b;
+  --radius:20px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Cairo',sans-serif;
+  min-height:100vh;
+  color:var(--text-main);
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  /* Centered logo image + side fill color per spec */
+  background-color:var(--bg-fill-color);
+  background-image:url('https://i.postimg.cc/tJyyk8mQ/image-Picsart-Ai-Image-Enhancer.png');
+  background-repeat:no-repeat;
+  background-position:center center;
+  background-attachment:fixed;
+  background-size:contain;
+}
+
+/* ===================== CARD ===================== */
+.card{
+  width:100%;max-width:540px;
+  background:rgba(var(--card-bg-rgb),var(--card-opacity));
+  backdrop-filter:blur(var(--blur-strength));
+  -webkit-backdrop-filter:blur(var(--blur-strength));
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:var(--radius);
+  box-shadow:0 25px 60px rgba(0,0,0,.4);
+  padding:clamp(22px,5vw,42px);
+}
+.card h1{font-size:clamp(1.25rem,3vw,1.6rem);font-weight:800;margin-bottom:6px}
+.card p.sub{color:var(--text-muted);font-size:.9rem;margin-bottom:24px}
+
+/* ===================== FORM FIELDS ===================== */
+.field{margin-bottom:18px}
+.field label{display:block;font-size:.9rem;font-weight:600;margin-bottom:6px}
+.field input[type="text"],
+.field input[type="email"],
+.field input[type="tel"],
+.field select{
+  width:100%;
+  padding:12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);
+  color:var(--text-main);
+  font-family:inherit;font-size:.95rem;
+  transition:border-color .2s, box-shadow .2s;
+}
+.field input::placeholder{color:var(--text-muted)}
+.field input:focus,.field select:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(243,118,109,.25);
+}
+.error-msg{display:none;color:var(--error);font-size:.8rem;margin-top:5px}
+.field.invalid input,.field.invalid select{border-color:var(--error)}
+.field.invalid .error-msg{display:block}
+
+/* Custom select arrow */
+.field select{
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat:no-repeat;background-position:14px center;background-size:18px;
+  padding-inline-start:38px;
+}
+
+/* Gender visual toggle */
+.gender-group{display:flex;gap:12px}
+.gender-option{flex:1}
+.gender-option input{display:none}
+.gender-option label{
+  display:flex;align-items:center;justify-content:center;
+  padding:12px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);
+  cursor:pointer;font-size:.9rem;font-weight:600;
+  transition:all .2s;
+}
+.gender-option input:checked + label{
+  border-color:var(--accent);
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#1e1e1e;
+}
+
+/* Captcha container */
+.captcha-box{display:flex;justify-content:center;margin:20px 0}
+
+/* ===================== SUBMIT BUTTON ===================== */
+.submit-btn{
+  width:100%;position:relative;
+  padding:14px;border-radius:14px;
+  font-family:inherit;font-size:1rem;font-weight:700;
+  color:var(--text-main);
+  background:rgba(255,255,255,.04);
+  border:1px solid transparent;
+  background-clip:padding-box;
+  cursor:pointer;overflow:hidden;
+  transition:box-shadow .25s, transform .1s;
+}
+.submit-btn::before{
+  /* gradient border */
+  content:'';position:absolute;inset:0;padding:1px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  pointer-events:none;
+}
+.submit-btn:hover{box-shadow:0 0 24px rgba(243,118,109,.45)}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.submit-btn:disabled{opacity:.7;cursor:not-allowed}
+
+.spinner{
+  display:none;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  border-radius:50%;animation:spin .7s linear infinite;
+  margin-inline-end:8px;
+}
+.submit-btn.loading .spinner{display:inline-block;vertical-align:middle}
+.submit-btn.loading .btn-text{vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===================== SUCCESS MODAL ===================== */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+  align-items:center;justify-content:center;z-index:50;padding:20px;
+}
+.modal-overlay.show{display:flex}
+.modal-box{
+  background:#0f172a;border:1px solid rgba(255,255,255,.15);
+  border-radius:18px;padding:32px;max-width:360px;text-align:center;
+}
+.modal-box .icon{
+  width:56px;height:56px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+  font-size:1.6rem;
+}
+.modal-box h2{margin-bottom:8px;font-size:1.1rem}
+.modal-box p{color:var(--text-muted);font-size:.9rem;margin-bottom:20px}
+.modal-box button{
+  padding:10px 24px;border-radius:10px;border:none;
+  background:var(--accent);color:#1e1e1e;font-weight:700;cursor:pointer;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width:400px){
+  .gender-group{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<form class="card" id="regForm" novalidate>
+  <h1>تسجيل حضور الفعالية الافتراضية</h1>
+  <p class="sub">يرجى تعبئة البيانات التالية لتأكيد حجز مقعدك</p>
+
+  <!-- Full name -->
+  <div class="field" id="field-name">
+    <label for="fullName">اسم المسجّل</label>
+    <input type="text" id="fullName" name="fullName" placeholder="الاسم الكامل" autocomplete="name">
+    <span class="error-msg">يرجى إدخال الاسم الكامل (٣ أحرف على الأقل)</span>
+  </div>
+
+  <!-- Email -->
+  <div class="field" id="field-email">
+    <label for="email">البريد الإلكتروني</label>
+    <input type="email" id="email" name="email" placeholder="example@mail.com" autocomplete="email">
+    <span class="error-msg">يرجى إدخال بريد إلكتروني صحيح</span>
+  </div>
+
+  <!-- Phone -->
+  <div class="field" id="field-phone">
+    <label for="phone">رقم الهاتف</label>
+    <input type="tel" id="phone" name="phone" placeholder="01xxxxxxxxx" pattern="^01[0-2,5]{1}[0-9]{8}$" autocomplete="tel">
+    <span class="error-msg">يرجى إدخال رقم هاتف مصري صحيح (11 رقم)</span>
+  </div>
+
+  <!-- Gender -->
+  <div class="field" id="field-gender">
+    <label>النوع</label>
+    <div class="gender-group">
+      <div class="gender-option">
+        <input type="radio" id="male" name="gender" value="ذكر">
+        <label for="male">ذكر</label>
+      </div>
+      <div class="gender-option">
+        <input type="radio" id="female" name="gender" value="أنثى">
+        <label for="female">أنثى</label>
+      </div>
+    </div>
+    <span class="error-msg">يرجى اختيار النوع</span>
+  </div>
+
+  <!-- Session / event select -->
+  <div class="field" id="field-session">
+    <label for="session">اختيار الفعالية أو الجلسة</label>
+    <select id="session" name="session">
+      <option value="">-- اختر الجلسة --</option>
+      <!-- Edit these options to match your actual sessions -->
+      <option value="الجلسة الافتتاحية">الجلسة الافتتاحية</option>
+      <option value="جلسة الذكاء الاصطناعي">جلسة الذكاء الاصطناعي</option>
+      <option value="جلسة تطوير الأعمال">جلسة تطوير الأعمال</option>
+    </select>
+    <span class="error-msg">يرجى اختيار الجلسة</span>
+  </div>
+
+  <!-- Captcha widget -->
+  <div class="captcha-box">
+    <div class="cf-turnstile" data-sitekey="" id="turnstileWidget" data-callback="onCaptchaSuccess" data-expired-callback="onCaptchaExpired"></div>
+  </div>
+  <span class="error-msg" id="captchaError" style="display:none;text-align:center;margin-bottom:14px">يرجى إكمال التحقق الأمني</span>
+
+  <!-- Submit -->
+  <button type="submit" class="submit-btn" id="submitBtn">
+    <span class="spinner"></span>
+    <span class="btn-text">تسجيل الحضور</span>
+  </button>
+</form>
+
+<!-- Success modal -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal-box">
+    <div class="icon">✓</div>
+    <h2>تم التسجيل بنجاح</h2>
+    <p>شكراً لتسجيلك، سيصلك تأكيد قريباً.</p>
+    <button id="closeModal">حسناً</button>
+  </div>
+</div>
+
+<script>
+// ===================== CONFIG FALLBACK =====================
+// If config.js was not loaded, fall back to placeholders + warn in console.
+window.APP_CONFIG = window.APP_CONFIG || { WEB_APP_URL: '', TURNSTILE_SITE_KEY: '' };
+if (!window.APP_CONFIG.WEB_APP_URL) console.warn('APP_CONFIG.WEB_APP_URL missing — copy config.example.js to config.js');
+
+// Inject site key into the Turnstile widget once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('turnstileWidget').setAttribute('data-sitekey', window.APP_CONFIG.TURNSTILE_SITE_KEY);
+});
+
+// ===================== STATE =====================
+let captchaToken = null;
+
+// Turnstile callbacks (must be global)
+function onCaptchaSuccess(token){ captchaToken = token; }
+function onCaptchaExpired(){ captchaToken = null; }
+
+// ===================== VALIDATION =====================
+const form = document.getElementById('regForm');
+
+function setError(fieldId, invalid){
+  document.getElementById(fieldId).classList.toggle('invalid', invalid);
+}
+
+function validateForm(){
+  let valid = true;
+
+  const name = document.getElementById('fullName').value.trim();
+  if (name.length < 3){ setError('field-name', true); valid = false; } else setError('field-name', false);
+
+  const email = document.getElementById('email').value.trim();
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!emailOk){ setError('field-email', true); valid = false; } else setError('field-email', false);
+
+  const phone = document.getElementById('phone').value.trim();
+  const phoneOk = /^01[0-2,5]{1}[0-9]{8}$/.test(phone);
+  if (!phoneOk){ setError('field-phone', true); valid = false; } else setError('field-phone', false);
+
+  const genderChecked = document.querySelector('input[name="gender"]:checked');
+  if (!genderChecked){ setError('field-gender', true); valid = false; } else setError('field-gender', false);
+
+  const session = document.getElementById('session').value;
+  if (!session){ setError('field-session', true); valid = false; } else setError('field-session', false);
+
+  // Captcha check
+  const captchaError = document.getElementById('captchaError');
+  if (!captchaToken){ captchaError.style.display = 'block'; valid = false; } else captchaError.style.display = 'none';
+
+  return valid;
+}
+
+// ===================== SUBMIT =====================
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
+
+  const payload = {
+    fullName: document.getElementById('fullName').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    gender: document.querySelector('input[name="gender"]:checked').value,
+    session: document.getElementById('session').value,
+    captchaToken
+  };
+
+  submitBtn.classList.add('loading');
+  submitBtn.disabled = true;
+
+  try {
+    if (window.APP_CONFIG.WEB_APP_URL){
+      // text/plain avoids a CORS preflight against Apps Script web apps
+      const res = await fetch(window.APP_CONFIG.WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error || 'فشل الإرسال');
+    } else {
+      // Local testing fallback — no backend configured
+      console.log('Form payload (local test):', payload);
+    }
+    showSuccess();
+    form.reset();
+    captchaToken = null;
+    if (window.turnstile) window.turnstile.reset();
+  } catch (err){
+    console.error('Submission error:', err);
+    alert('حدث خطأ أثناء الإرسال، حاول مرة أخرى');
+  } finally {
+    submitBtn.classList.remove('loading');
+    submitBtn.disabled = false;
+  }
+});
+
+// ===================== SUCCESS MODAL =====================
+function showSuccess(){ document.getElementById('successModal').classList.add('show'); }
+document.getElementById('closeModal').addEventListener('click', () => {
+  document.getElementById('successModal').classList.remove('show');
+});
+</script>
+</body>
+</html>
