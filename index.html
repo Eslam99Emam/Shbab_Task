@@ -265,7 +265,9 @@ body{
 // ===================== CONFIG FALLBACK =====================
 // If config.js was not loaded, fall back to placeholders + warn in console.
 // window.APP_CONFIG = window.APP_CONFIG || { WEB_APP_URL: '', TURNSTILE_SITE_KEY: '' };
-if (!window.APP_CONFIG.WEB_APP_URL) console.warn('APP_CONFIG.WEB_APP_URL missing — copy config.example.js to config.js');
+// if (!window.APP_CONFIG.WEB_APP_URL) console.warn('APP_CONFIG.WEB_APP_URL missing — copy config.example.js to config.js');
+
+console.log(window.APP_CONFIG);
 
 // Inject site key into the Turnstile widget once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
