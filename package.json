@@ -1,7 +1,0 @@
-{
-  "name": "virtual-event-registration",
-  "private": true,
-  "scripts": {
-    "build": "node build-config.js"
-  }
-}
