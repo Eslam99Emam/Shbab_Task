@@ -3,6 +3,6 @@
 // Only PUBLIC values belong here — the Turnstile Secret Key never goes in frontend code.
 
 window.APP_CONFIG = {
-  WEB_APP_URL: process.env.WEB_APP_URL || '',
-  TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || ''
+  WEB_APP_URL: process.env.WEB_APP_URL,
+  TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY
 };
